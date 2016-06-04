@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# Thomas Gotzsche
+#
+Sets up replication documents for all databases from one couchdb server to another one. 
+#
+
+if [ -z "$2" ]; then 
+    cat <<EOF 
+Usage: $0 <sourceUrl> <targetUrl>
+Sets up replication documents for all databases from one couchdb server to another one. 
+
+Example: $0 example.com:5984 admin:admin@localhost:5984
+EOF
+    exit 1
+fi 
+
+DBNAMES=`curl -s -X GET $1/_all_dbs | sed 's/\[//;s/\]//;s/"_[a-z]*"//g;s/[,\"]/ /g'`
+
+for i in $DBNAMES; do 
+    curl  -X POST http://$2/_replicator  -d '{"source":"'http://$1/$i'", "target":"http://'$2/$i'", "continuous":true}' -H "Content-Type: application/json"
+    curl  -X POST http://$1/_replicator  -d '{"source":"'http://$2/$i'", "target":"'http://$1/$i'", "continuous":true}' -H "Content-Type: application/json"
+done
+
